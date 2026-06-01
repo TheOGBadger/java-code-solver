@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Java Problem Solver</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f0f;
+    --bg2: #1a1a1a;
+    --bg3: #232323;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.15);
+    --text: #f0ede8;
+    --text2: #9a9690;
+    --text3: #5a5754;
+    --accent: #e8520a;
+    --accent-dim: rgba(232,82,10,0.12);
+    --accent-hover: #cf4709;
+    --green: #22c55e;
+    --radius: 10px;
+    --radius-lg: 14px;
+  }
+
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 28px; border-bottom: 0.5px solid var(--border); background: var(--bg); position: sticky; top: 0; z-index: 10; }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .logo { width: 34px; height: 34px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .app-name { font-size: 16px; font-weight: 600; letter-spacing: -0.02em; }
+  .app-name span { color: var(--accent); }
+  .api-key-btn { font-size: 12px; font-family: monospace; padding: 6px 14px; border: 0.5px solid var(--border2); border-radius: 20px; background: transparent; color: var(--text2); cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 6px; }
+  .api-key-btn:hover { background: var(--bg3); color: var(--text); }
+  .api-key-dot { width: 7px; height: 7px; border-radius: 50%; background: #555; }
+  .api-key-dot.set { background: var(--green); }
+
+  .main { display: flex; flex: 1; height: calc(100vh - 57px); overflow: hidden; }
+
+  .left-panel { width: 360px; flex-shrink: 0; border-right: 0.5px solid var(--border); overflow-y: auto; padding: 24px 22px; display: flex; flex-direction: column; gap: 20px; }
+
+  .section-label { font-size: 10px; font-family: monospace; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .section-label::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); display: block; }
+
+  .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .mode-btn { padding: 9px 10px; border: 0.5px solid var(--border); border-radius: var(--radius); background: var(--bg2); color: var(--text2); cursor: pointer; font-size: 12px; font-family: monospace; text-align: left; transition: all 0.15s; display: flex; align-items: center; gap: 6px; }
+  .mode-btn:hover { border-color: var(--border2); color: var(--text); background: var(--bg3); }
+  .mode-btn.active { border-color: var(--accent); background: var(--accent-dim); color: var(--text); }
+
+  textarea, input[type="text"], input[type="password"] { width: 100%; background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius); color: var(--text); font-family: monospace; font-size: 13px; padding: 10px 12px; line-height: 1.6; resize: vertical; transition: border-color 0.15s; }
+  textarea:focus, input:focus { outline: none; border-color: var(--accent); }
+  textarea::placeholder, input::placeholder { color: var(--text3); }
+  #problem-input { min-height: 110px; }
+  #code-input { min-height: 90px; font-size: 12px; }
+  #error-input { min-height: 70px; font-size: 12px; }
+
+  .topics { display: flex; flex-wrap: wrap; gap: 5px; }
+  .topic { font-size: 11px; font-family: monospace; padding: 4px 10px; border: 0.5px solid var(--border); border-radius: 20px; background: transparent; color: var(--text3); cursor: pointer; transition: all 0.15s; }
+  .topic:hover { border-color: var(--border2); color: var(--text2); }
+  .topic.active { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+
+  .run-btn { width: 100%; padding: 11px; border: none; border-radius: var(--radius); background: var(--accent); color: white; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 8px; letter-spacing: -0.01em; }
+  .run-btn:hover { background: var(--accent-hover); }
+  .run-btn:active { transform: scale(0.99); }
+  .run-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+  .right-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .output-topbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; border-bottom: 0.5px solid var(--border); background: var(--bg); flex-shrink: 0; }
+  .output-status { display: flex; align-items: center; gap: 8px; font-size: 11px; font-family: monospace; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+  .status-indicator { width: 7px; height: 7px; border-radius: 50%; background: var(--text3); }
+  .status-indicator.active { background: var(--accent); animation: blink 1s infinite; }
+  .status-indicator.done { background: var(--green); animation: none; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .action-btns { display: flex; gap: 8px; }
+  .action-btn { font-size: 11px; font-family: monospace; padding: 5px 12px; border: 0.5px solid var(--border); border-radius: 6px; background: transparent; color: var(--text3); cursor: pointer; transition: all 0.15s; }
+  .action-btn:hover { border-color: var(--border2); color: var(--text2); }
+
+  .output-content { flex: 1; overflow-y: auto; padding: 28px 32px; }
+  .output-content h3 { font-size: 13px; font-weight: 600; font-family: monospace; color: var(--accent); margin: 22px 0 8px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .output-content h3:first-child { margin-top: 0; }
+  .output-content p { font-size: 14px; line-height: 1.75; color: var(--text); margin-bottom: 10px; }
+  .output-content pre { margin: 10px 0; border-radius: var(--radius); overflow: hidden; border: 0.5px solid var(--border); }
+  .output-content pre code { font-family: monospace; font-size: 13px; line-height: 1.6; white-space: pre; word-break: normal; border-radius: var(--radius); padding: 16px; display: block; overflow-x: auto; background: #1a1f2e; color: #abb2bf; }
+  .output-content code { font-family: monospace; font-size: 12px; background: var(--bg3); padding: 2px 6px; border-radius: 4px; color: #e8a87c; }
+  .output-content ul, .output-content ol { padding-left: 1.4rem; margin-bottom: 10px; }
+  .output-content li { font-size: 14px; line-height: 1.75; color: var(--text); margin-bottom: 4px; }
+  .output-content strong { font-weight: 600; color: var(--text); }
+
+  .placeholder-msg { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text3); text-align: center; gap: 12px; }
+  .placeholder-msg .big-icon { font-size: 40px; opacity: 0.3; }
+  .placeholder-msg p { font-size: 13px; line-height: 1.6; max-width: 280px; }
+
+  .cursor { display: inline-block; width: 8px; height: 15px; background: var(--accent); animation: blink 0.7s infinite; vertical-align: -3px; margin-left: 2px; border-radius: 1px; }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(4px); }
+  .modal-overlay.hidden { display: none; }
+  .modal { background: var(--bg2); border: 0.5px solid var(--border2); border-radius: var(--radius-lg); padding: 28px 28px 24px; width: 460px; max-width: 90vw; }
+  .modal h2 { font-size: 16px; font-weight: 600; margin-bottom: 10px; }
+  .modal .steps { list-style: none; margin-bottom: 18px; display: flex; flex-direction: column; gap: 8px; }
+  .modal .steps li { font-size: 13px; color: var(--text2); line-height: 1.6; display: flex; gap: 10px; }
+  .modal .steps li .num { background: var(--accent); color: white; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  .modal .steps li a { color: var(--accent); text-decoration: none; }
+  .modal .steps li a:hover { text-decoration: underline; }
+  .modal-btns { display: flex; gap: 10px; margin-top: 16px; }
+  .btn-save { flex: 1; padding: 10px; background: var(--accent); border: none; border-radius: var(--radius); color: white; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+  .btn-save:hover { background: var(--accent-hover); }
+  .btn-cancel { padding: 10px 16px; background: transparent; border: 0.5px solid var(--border2); border-radius: var(--radius); color: var(--text2); font-size: 13px; cursor: pointer; transition: all 0.15s; }
+  .btn-cancel:hover { background: var(--bg3); color: var(--text); }
+  .key-note { font-size: 11px; color: var(--text3); margin-top: 8px; font-family: monospace; }
+  .modal-input-label { font-size: 11px; color: var(--text3); font-family: monospace; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+
+
+  .upload-area { border: 1px dashed var(--border2); border-radius: var(--radius); padding: 12px; text-align: center; cursor: pointer; transition: all 0.15s; position: relative; background: var(--bg2); }
+  .upload-area:hover { border-color: var(--accent); background: var(--accent-dim); }
+  .upload-area.has-image { border-style: solid; border-color: var(--accent); padding: 8px; }
+  .upload-area input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-placeholder { font-size: 12px; font-family: monospace; color: var(--text3); pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+  .upload-placeholder .upload-icon { font-size: 22px; }
+  .upload-preview { width: 100%; border-radius: 6px; display: block; max-height: 140px; object-fit: contain; pointer-events: none; }
+  .upload-clear { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.7); color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; z-index: 2; }
+  .upload-clear:hover { background: var(--accent); }
+  .vision-badge { font-size: 10px; font-family: monospace; color: var(--accent); background: var(--accent-dim); border: 0.5px solid var(--accent); border-radius: 20px; padding: 2px 8px; display: inline-block; margin-top: 5px; }
+
+  .code-wrapper { position: relative; margin: 10px 0; }
+  .code-wrapper pre { margin: 0; }
+  .code-copy-btn {
+    position: absolute; top: 8px; right: 8px;
+    background: rgba(255,255,255,0.08); border: 0.5px solid rgba(255,255,255,0.15);
+    color: #aaa; font-family: monospace; font-size: 11px; padding: 3px 10px;
+    border-radius: 5px; cursor: pointer; transition: all 0.15s; opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .code-wrapper:hover .code-copy-btn { opacity: 1; }
+  .code-copy-btn:hover { background: rgba(255,255,255,0.15); color: white; }
+  .code-copy-btn.copied { color: #22c55e; border-color: #22c55e; background: rgba(34,197,94,0.1); }
+  .history-section { border-top: 0.5px solid var(--border); padding: 16px 22px 10px; }
+  .history-item { font-size: 11px; font-family: monospace; color: var(--text3); padding: 5px 8px; border-radius: 6px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: all 0.1s; }
+  .history-item:hover { background: var(--bg3); color: var(--text2); }
+
+
+  .step-btn { font-size: 11px; font-family: monospace; padding: 5px 12px; border: 0.5px solid var(--accent); border-radius: 6px; background: transparent; color: var(--accent); cursor: pointer; transition: all 0.15s; }
+  .step-btn:hover { background: var(--accent-dim); }
+  .step-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- API KEY MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2>☕ Set up your free API key</h2>
+    <ul class="steps">
+      <li><div class="num">1</div><div>Go to <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a> and sign up with your Google account (free)</div></li>
+      <li><div class="num">2</div><div>Click <strong style="color:var(--text)">"Create API Key"</strong> — completely free, no credit card needed</div></li>
+      <li><div class="num">3</div><div>Copy the key and paste it below</div></li>
+    </ul>
+    <div class="modal-input-label">Your Groq API Key</div>
+    <input type="password" id="api-key-input" placeholder="gsk_..." autocomplete="off" />
+    <div class="key-note">Saved locally on your device — only sent to api.groq.com</div>
+    <div id="embed-btn-wrap" style="display:none; margin-top:10px;">
+      <button onclick="downloadEmbeddedFile()" style="width:100%;padding:9px;background:#22c55e;border:none;border-radius:8px;color:white;font-family:monospace;font-size:12px;font-weight:600;cursor:pointer;">
+        ⬇ Download file with key saved inside (open offline forever)
+      </button>
+      <div style="font-size:11px;color:var(--text3);font-family:monospace;margin-top:5px;">Replace your current java-solver.html with this — no more entering your key</div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" id="modal-cancel">Later</button>
+      <button class="btn-save" id="save-btn" onclick="saveApiKey()">Save & Start →</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">☕</div>
+    <div class="app-name">Java<span>Solver</span></div>
+  </div>
+  <button class="api-key-btn" onclick="openModal()">
+    <div class="api-key-dot" id="key-dot"></div>
+    <span id="key-label">Set API Key</span>
+  </button>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT PANEL -->
+  <div class="left-panel">
+
+    <div>
+      <div class="section-label">Mode</div>
+      <div class="mode-grid">
+        <button class="mode-btn active" onclick="setMode('solve', this)"><span>🔍</span> Solve it</button>
+        <button class="mode-btn" onclick="setMode('hint', this)"><span>💡</span> Hints only</button>
+        <button class="mode-btn" onclick="setMode('explain', this)"><span>📖</span> Explain</button>
+        <button class="mode-btn" onclick="setMode('debug', this)"><span>🐛</span> Debug</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label" id="problem-label-wrap">Problem / Question</div>
+      <textarea id="problem-input" placeholder="e.g. Write a method that reverses a linked list..." rows="5"></textarea>
+    </div>
+
+    <div id="code-section" style="display:none">
+      <div class="section-label">Your code (optional)</div>
+      <textarea id="code-input" placeholder="Paste your Java code here..."></textarea>
+    </div>
+
+    <div id="error-section" style="display:none">
+      <div class="section-label">Error / stack trace (optional)</div>
+      <textarea id="error-input" placeholder="Paste the error message..."></textarea>
+    </div>
+
+    <div>
+      <div class="section-label">Topic tags</div>
+      <div class="topics">
+        <button class="topic" onclick="toggleTopic(this)">Arrays</button>
+        <button class="topic" onclick="toggleTopic(this)">Strings</button>
+        <button class="topic" onclick="toggleTopic(this)">Recursion</button>
+        <button class="topic" onclick="toggleTopic(this)">OOP</button>
+        <button class="topic" onclick="toggleTopic(this)">Collections</button>
+        <button class="topic" onclick="toggleTopic(this)">Streams</button>
+        <button class="topic" onclick="toggleTopic(this)">Sorting</button>
+        <button class="topic" onclick="toggleTopic(this)">Trees</button>
+        <button class="topic" onclick="toggleTopic(this)">Generics</button>
+        <button class="topic" onclick="toggleTopic(this)">Exceptions</button>
+        <button class="topic" onclick="toggleTopic(this)">Threads</button>
+        <button class="topic" onclick="toggleTopic(this)">Interfaces</button>
+        <button class="topic" onclick="toggleTopic(this)">HashMap</button>
+        <button class="topic" onclick="toggleTopic(this)">Linked Lists</button>
+      </div>
+    </div>
+
+
+    <div id="image-section">
+      <div class="section-label">Screenshot / Photo (optional)</div>
+      <div class="upload-area" id="upload-area">
+        <input type="file" id="image-input" accept="image/*" onchange="handleImageUpload(event)" />
+        <div class="upload-placeholder" id="upload-placeholder">
+          <span class="upload-icon">📷</span>
+          <span>Click or drag an image here</span>
+          <span style="font-size:10px;color:var(--text3)">Screenshot, photo of problem, etc.</span>
+        </div>
+        <img id="upload-preview" class="upload-preview" style="display:none" />
+        <button class="upload-clear" id="upload-clear" style="display:none" onclick="clearImage(event)" title="Remove image">✕</button>
+      </div>
+      <div id="vision-badge-wrap" style="display:none"><span class="vision-badge">⚡ Vision mode — image will be analysed</span></div>
+    </div>
+
+    <button class="run-btn" id="run-btn" onclick="runSolver()">
+      <span id="btn-icon">▶</span>
+      <span id="btn-text">Run Solver</span>
+    </button>
+
+    <div class="history-section" id="history-section" style="display:none">
+      <div class="section-label">Recent</div>
+      <div id="history-list"></div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="output-topbar">
+      <div class="output-status">
+        <div class="status-indicator" id="status-dot"></div>
+        <span id="status-text">ready</span>
+      </div>
+      <div class="action-btns">
+        <button class="action-btn" onclick="clearOutput()">clear</button>
+        <button class="action-btn" id="copy-btn" onclick="copyOutput()">copy</button>
+      </div>
+    </div>
+    <div class="output-content" id="output-content">
+      <div class="placeholder-msg">
+        <div class="big-icon">☕</div>
+        <p>Describe a Java problem on the left and hit <strong>Run Solver</strong> to get started.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let currentMode = 'solve';
+let isRunning = false;
+let rawOutput = '';
+let history = [];
+
+try { history = JSON.parse(localStorage.getItem('jsolve_history') || '[]'); } catch(e) {}
+
+// In-memory fallback for when localStorage is blocked (file:// protocol)
+let _memKey = '%%INJECTED_KEY%%';
+
+function getApiKey() {
+  if (_memKey) return _memKey;
+  try { return localStorage.getItem('jsolve_groq_key') || ''; } catch(e) { return ''; }
+}
+
+function setApiKey(val) {
+  _memKey = val;
+  try { localStorage.setItem('jsolve_groq_key', val); } catch(e) {}
+}
+
+function updateKeyUI() {
+  const key = getApiKey();
+  document.getElementById('key-dot').className = key ? 'api-key-dot set' : 'api-key-dot';
+  document.getElementById('key-label').textContent = key ? 'API Key ✓' : 'Set API Key';
+}
+
+function openModal() {
+  const modal = document.getElementById('modal');
+  modal.classList.remove('hidden');
+  const k = getApiKey();
+  const input = document.getElementById('api-key-input');
+  if (k) input.value = k;
+  // Reset button state
+  const btn = modal.querySelector('.btn-save');
+  btn.textContent = 'Save & Start →';
+  btn.style.background = '';
+  setTimeout(() => input.focus(), 100);
+}
+
+function saveApiKey() {
+  try {
+    const input = document.getElementById('api-key-input');
+    const val = (input.value || '').trim();
+    if (!val) { input.style.borderColor = 'var(--accent)'; input.focus(); return; }
+    setApiKey(val);
+    const btn = document.getElementById('save-btn');
+    if (btn) { btn.textContent = '✓ Saved!'; btn.style.background = '#22c55e'; }
+    // Show the embed-and-download button
+    document.getElementById('embed-btn-wrap').style.display = 'block';
+    setTimeout(function() {
+      document.getElementById('modal').classList.add('hidden');
+      updateKeyUI();
+      if (btn) { btn.textContent = 'Save & Start →'; btn.style.background = ''; }
+      document.getElementById('embed-btn-wrap').style.display = 'none';
+    }, 3500);
+  } catch(err) {
+    alert('Error saving key: ' + err.message);
+  }
+}
+
+function downloadEmbeddedFile() {
+  const key = getApiKey();
+  if (!key) return;
+  const src = document.documentElement.outerHTML;
+  const updated = src.replace("let _memKey = '%%INJECTED_KEY%%';", "let _memKey = '" + key + "';")
+                     .replace("let _memKey = '';", "let _memKey = '" + key + "';");
+  const blob = new Blob([updated], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'java-solver.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// all DOM-dependent init wrapped safely
+document.addEventListener('DOMContentLoaded', function() {
+  // Restore last answer if page was refreshed
+  try {
+    const saved = sessionStorage.getItem('jsolve_last_output');
+    if (saved) {
+      rawOutput = saved;
+      const outputContent = document.getElementById('output-content');
+      outputContent.innerHTML = renderMarkdown(rawOutput);
+      outputContent.querySelectorAll('pre code').forEach(block => {
+        block.innerHTML = highlightJava(block.textContent);
+      });
+      document.getElementById('status-dot').className = 'status-indicator done';
+      document.getElementById('status-text').textContent = 'restored';
+      const sb2 = document.getElementById('step-btn'); if(sb2) sb2.disabled = false;
+    }
+  } catch(e) {}
+
+  var inp = document.getElementById('api-key-input');
+  if (inp) {
+    inp.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') saveApiKey();
+      if (e.key === 'Escape') document.getElementById('modal').classList.add('hidden');
+    });
+  }
+  var cancelBtn = document.getElementById('modal-cancel');
+  if (cancelBtn) cancelBtn.onclick = function() { document.getElementById('modal').classList.add('hidden'); };
+  updateKeyUI();
+  renderHistory();
+  if (!getApiKey()) {
+    setTimeout(function() { document.getElementById('modal').classList.remove('hidden'); }, 200);
+  } else {
+    document.getElementById('modal').classList.add('hidden');
+  }
+});
+
+function setMode(mode, btn) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  document.getElementById('code-section').style.display = 'none';
+  document.getElementById('error-section').style.display = 'none';
+
+  const configs = {
+    solve:   { label: 'Problem / Question',  ph: 'e.g. Write a method that reverses a linked list in Java...' },
+    hint:    { label: 'Problem / Question',  ph: 'e.g. Find all permutations of a string...' },
+    explain: { label: 'Concept to explain',  ph: 'e.g. How does HashMap work internally in Java?' },
+    debug:   { label: 'Describe the bug',    ph: 'e.g. My sort method returns wrong results for negative numbers...' }
+  };
+
+  const c = configs[mode];
+  document.getElementById('problem-label-wrap').childNodes[1] && (document.getElementById('problem-label-wrap').textContent = c.label);
+  // re-add the dot via section-label::before (CSS pseudo) — just update text content
+  document.getElementById('problem-label-wrap').textContent = c.label;
+  document.getElementById('problem-input').placeholder = c.ph;
+
+  if (mode === 'debug') {
+    document.getElementById('code-section').style.display = 'block';
+    document.getElementById('error-section').style.display = 'block';
+  }
+}
+
+function toggleTopic(btn) { btn.classList.toggle('active'); }
+
+function getTopics() {
+  return [...document.querySelectorAll('.topic.active')].map(t => t.textContent);
+}
+
+function buildPrompt() {
+  const problem = document.getElementById('problem-input').value.trim();
+  const code = document.getElementById('code-input').value.trim();
+  const error = document.getElementById('error-input').value.trim();
+  const topics = getTopics();
+
+  const topicStr = topics.length ? `\nRelevant topic tags: ${topics.join(', ')}` : '';
+  const codeStr = code ? `\n\nUser's Java code:\n\`\`\`java\n${code}\n\`\`\`` : '';
+  const errorStr = error ? `\n\nError/stack trace:\n${error}` : '';
+
+  const instructions = {
+    solve:   `You are an expert Java tutor. Provide a correct, complete Java solution. CRITICAL RULES: (1) If the problem asks for exact output, analyse every character carefully — spaces, quotes, backslashes, newlines — and match them EXACTLY. (2) Always write separate System.out.println() statements for each line of output, never cram multiple lines into one println with \\n. (3) The code MUST compile and run correctly with javac/java — double-check escape characters. (4) Use these exact headers:\n### Approach\n### Solution\n### Walkthrough\n### Common Pitfalls`,
+    hint:    `You are a Java tutor. Give hints ONLY — no full solution or complete code. Use:\n### Hint 1\n### Hint 2\n### Think About This\n### Relevant Java Tools`,
+    explain: `You are a Java expert. Give a thorough, clear explanation using:\n### What Is It?\n### How It Works\n### Code Example\n### When To Use It`,
+    debug:   `You are a Java debugger. Analyse the code and find the bug. CRITICAL: The fixed code MUST compile and run correctly. Use:\n### Bug Found\n### Why It Happens\n### Fixed Code\n### What Changed`
+  };
+
+  return `${instructions[currentMode]}${topicStr}\n\nUser's question: ${problem}${codeStr}${errorStr}`;
+}
+
+
+let attachedImageBase64 = null;
+let attachedImageMime = 'image/jpeg';
+
+function handleImageUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  attachedImageMime = file.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = e => {
+    attachedImageBase64 = e.target.result.split(',')[1];
+    document.getElementById('upload-preview').src = e.target.result;
+    document.getElementById('upload-preview').style.display = 'block';
+    document.getElementById('upload-placeholder').style.display = 'none';
+    document.getElementById('upload-clear').style.display = 'flex';
+    document.getElementById('upload-area').classList.add('has-image');
+    document.getElementById('vision-badge-wrap').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearImage(e) {
+  e.stopPropagation();
+  attachedImageBase64 = null;
+  document.getElementById('image-input').value = '';
+  document.getElementById('upload-preview').style.display = 'none';
+  document.getElementById('upload-preview').src = '';
+  document.getElementById('upload-placeholder').style.display = 'flex';
+  document.getElementById('upload-clear').style.display = 'none';
+  document.getElementById('upload-area').classList.remove('has-image');
+  document.getElementById('vision-badge-wrap').style.display = 'none';
+}
+
+// Drag and drop support
+document.addEventListener('DOMContentLoaded', () => {
+  const area = document.getElementById('upload-area');
+  area.addEventListener('dragover', e => { e.preventDefault(); area.style.borderColor = 'var(--accent)'; });
+  area.addEventListener('dragleave', () => { if (!attachedImageBase64) area.style.borderColor = ''; });
+  area.addEventListener('drop', e => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      document.getElementById('image-input').files = dt.files;
+      handleImageUpload({ target: { files: [file] } });
+    }
+  });
+});
+
+
+let codeBlockSources = [];
+
+function copyCode(btn, idx) {
+  const text = codeBlockSources[idx] || '';
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ copied';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 1500);
+  }).catch(() => {
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = '✓ copied'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 1500);
+  });
+}
+
+function renderMarkdown(text) {
+  const codeBlocks = [];
+  codeBlockSources = [];
+  let html = text.replace(/```(?:java|Java|)?\n?([\s\S]*?)```/g, (_, code) => {
+    const safe = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    codeBlockSources.push(code.trim());
+    const idx = codeBlocks.length;
+    codeBlocks.push(`<div class="code-wrapper"><pre><code class="language-java">${safe}</code></pre><button class="code-copy-btn" onclick="copyCode(this, ${idx})">copy</button></div>`);
+    return `%%CB_${codeBlocks.length - 1}%%`;
+  });
+  html = html
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/### (.+)/g,'<h3>$1</h3>')
+    .replace(/## (.+)/g,'<h3>$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+  html = html.replace(/`([^`\n]+)`/g,'<code>$1</code>');
+  html = html.replace(/(?:^|\n)((?:- .+\n?)+)/gm, (_,block) => {
+    const items = block.trim().split('\n').map(l=>`<li>${l.replace(/^- /,'')}</li>`).join('');
+    return `<ul>${items}</ul>`;
+  });
+  html = html.split(/\n\n+/).map(block => {
+    const t = block.trim();
+    if (!t) return '';
+    if (/^(<h3|<ul|<ol|%%CB)/.test(t)) return t;
+    return `<p>${t.replace(/\n/g,' ')}</p>`;
+  }).join('\n');
+  html = html.replace(/%%CB_(\d+)%%/g, (_, i) => codeBlocks[parseInt(i)]);
+  return html;
+}
+
+function addToHistory(problem) {
+  const truncated = problem.length > 60 ? problem.slice(0,60)+'…' : problem;
+  history.unshift({ text: truncated, full: problem, mode: currentMode });
+  if (history.length > 8) history.pop();
+  try { localStorage.setItem('jsolve_history', JSON.stringify(history)); } catch(e) {}
+  renderHistory();
+}
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  const section = document.getElementById('history-section');
+  if (!history.length) { section.style.display='none'; return; }
+  section.style.display='block';
+  list.innerHTML = history.slice(0,5).map((h,i) =>
+    `<div class="history-item" onclick="loadHistory(${i})">[${h.mode}] ${h.text}</div>`
+  ).join('');
+}
+
+function loadHistory(idx) {
+  document.getElementById('problem-input').value = history[idx].full;
+}
+
+async function runSolver() {
+  const apiKey = getApiKey();
+  if (!apiKey) { openModal(); return; }
+
+  let problem = document.getElementById('problem-input').value.trim();
+  if (!problem && !attachedImageBase64) { document.getElementById('problem-input').focus(); return; }
+  if (!problem && attachedImageBase64) problem = 'Please read the Java problem in the attached image and solve it fully.';
+  if (isRunning) return;
+
+  isRunning = true;
+  rawOutput = '';
+  addToHistory(problem);
+
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  document.getElementById('btn-text').textContent = 'Thinking...';
+  document.getElementById('btn-icon').textContent = '⏳';
+
+  const outputContent = document.getElementById('output-content');
+  const statusDot = document.getElementById('status-dot');
+  const statusText = document.getElementById('status-text');
+
+  outputContent.innerHTML = '<span class="cursor"></span>';
+  statusDot.className = 'status-indicator active';
+  statusText.textContent = 'generating...';
+
+  try {
+    const useVision = !!attachedImageBase64;
+    const model = useVision ? 'meta-llama/llama-4-scout-17b-16e-instruct' : 'llama-3.3-70b-versatile';
+    const userContent = useVision
+      ? [
+          { type: 'image_url', image_url: { url: `data:${attachedImageMime};base64,${attachedImageBase64}` } },
+          { type: 'text', text: buildPrompt() }
+        ]
+      : buildPrompt();
+
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [{ role: 'user', content: userContent }],
+        max_tokens: 1500,
+        temperature: 0.3,
+        stream: false
+      })
+    });
+
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.error?.message || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    rawOutput = data?.choices?.[0]?.message?.content || '';
+    if (!rawOutput) throw new Error('Empty response');
+
+    outputContent.innerHTML = renderMarkdown(rawOutput);
+    outputContent.querySelectorAll('pre code').forEach(block => {
+      block.innerHTML = highlightJava(block.textContent);
+    });
+    statusDot.className = 'status-indicator done';
+    statusText.textContent = 'done';
+    const sb = document.getElementById('step-btn'); if(sb) sb.disabled = false;
+    try { sessionStorage.setItem('jsolve_last_output', rawOutput); } catch(e) {}
+
+  } catch(err) {
+    outputContent.innerHTML = `<p style="color:#f87171;margin-bottom:10px"><strong>Error:</strong> ${err.message}</p><p style="color:var(--text2);font-size:13px">Double-check your API key by clicking <strong style="color:var(--text)">API Key ✓</strong> at the top right. Get a free key at <a href="https://console.groq.com/keys" target="_blank" style="color:var(--accent)">console.groq.com/keys</a>.</p>`;
+    statusDot.className = 'status-indicator';
+    statusText.textContent = 'error';
+  }
+
+  isRunning = false;
+  btn.disabled = false;
+  document.getElementById('btn-text').textContent = 'Run Solver';
+  document.getElementById('btn-icon').textContent = '▶';
+}
+
+function clearOutput() {
+  rawOutput = '';
+  document.getElementById('output-content').innerHTML = `<div class="placeholder-msg"><div class="big-icon">☕</div><p>Describe a Java problem on the left and hit <strong>Run Solver</strong> to get started.</p></div>`;
+  document.getElementById('status-dot').className = 'status-indicator';
+  document.getElementById('status-text').textContent = 'ready';
+}
+
+function copyOutput() {
+  if (!rawOutput) return;
+  navigator.clipboard.writeText(rawOutput).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'copied ✓';
+    setTimeout(() => btn.textContent = 'copy', 1500);
+  });
+}
+
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') runSolver();
+});
+
+// init moved into DOMContentLoaded above
+
+function highlightJava(src) {
+  const KEYWORDS = new Set(['abstract','assert','boolean','break','byte','case','catch','char','class','const','continue','default','do','double','else','enum','extends','final','finally','float','for','goto','if','implements','import','instanceof','int','interface','long','native','new','null','package','private','protected','public','return','short','static','strictfp','super','switch','synchronized','this','throw','throws','transient','try','var','void','volatile','while','true','false']);
+  const TYPES    = new Set(['String','Integer','Double','Float','Long','Boolean','Byte','Short','Character','Object','List','ArrayList','HashMap','Map','Set','HashSet','LinkedList','Queue','Stack','Iterator','Scanner','System','Math','Arrays','Collections','Optional','StringBuilder','StringBuffer','Thread','Runnable','Exception','RuntimeException','Error','Comparable','Iterable','Number','Enum','Record','Void']);
+
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function span(color, text){ return `<span style="color:${color}">${esc(text)}</span>`; }
+
+  let out = '', i = 0;
+  while (i < src.length) {
+    // Block comment
+    if (src[i]==='/' && src[i+1]==='*') {
+      let j=i+2; while(j<src.length && !(src[j-1]==='*' && src[j]==='/')) j++;
+      out += `<span style="color:#6a737d;font-style:italic">${esc(src.slice(i,j+1))}</span>`; i=j+1; continue;
+    }
+    // Line comment
+    if (src[i]==='/' && src[i+1]==='/') {
+      let j=i; while(j<src.length && src[j]!=='\n') j++;
+      out += `<span style="color:#6a737d;font-style:italic">${esc(src.slice(i,j))}</span>`; i=j; continue;
+    }
+    // String
+    if (src[i]==='"') {
+      let j=i+1; while(j<src.length){ if(src[j]==='"' && src[j-1]!=='\\') break; j++; }
+      out += span('#98c379', src.slice(i,j+1)); i=j+1; continue;
+    }
+    // Char literal
+    if (src[i]==="'") {
+      let j=i+1; while(j<src.length){ if(src[j]==="'" && src[j-1]!=='\\') break; j++; }
+      out += span('#98c379', src.slice(i,j+1)); i=j+1; continue;
+    }
+    // Annotation
+    if (src[i]==='@') {
+      let j=i+1; while(j<src.length && /[A-Za-z0-9_]/.test(src[j])) j++;
+      out += span('#e06c75', src.slice(i,j)); i=j; continue;
+    }
+    // Number
+    if (/[0-9]/.test(src[i]) && (i===0 || /[^A-Za-z0-9_]/.test(src[i-1]))) {
+      let j=i; while(j<src.length && /[0-9a-fA-FxX_.fFdDlL]/.test(src[j])) j++;
+      out += span('#d19a66', src.slice(i,j)); i=j; continue;
+    }
+    // Identifier or keyword
+    if (/[A-Za-z_$]/.test(src[i])) {
+      let j=i; while(j<src.length && /[A-Za-z0-9_$]/.test(src[j])) j++;
+      const word = src.slice(i,j);
+      // peek ahead past whitespace for '('
+      let k=j; while(k<src.length && src[k]===' ') k++;
+      if (KEYWORDS.has(word))      out += `<span style="color:#c678dd;font-weight:600">${esc(word)}</span>`;
+      else if (TYPES.has(word))    out += span('#56b6c2', word);
+      else if (src[k]==='(')       out += span('#61afef', word);   // method call
+      else if (/^[A-Z]/.test(word)) out += span('#e5c07b', word);  // UpperCamelCase = class
+      else                          out += esc(word);
+      i=j; continue;
+    }
+    // Anything else (operators, punctuation, whitespace)
+    out += esc(src[i]); i++;
+  }
+  return out;
+}
+
+
+
+</script>
+</body>
+</html>
