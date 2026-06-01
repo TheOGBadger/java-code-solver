@@ -140,6 +140,10 @@
   .history-item:hover { background: var(--bg3); color: var(--text2); }
 
 
+  .step-btn-full { width: 100%; padding: 10px; border: 0.5px dashed var(--accent); border-radius: var(--radius); background: transparent; color: var(--accent); font-family: monospace; font-size: 12px; cursor: pointer; transition: all 0.15s; opacity: 0.4; }
+  .step-btn-full:not(:disabled) { opacity: 1; }
+  .step-btn-full:not(:disabled):hover { background: var(--accent-dim); }
+  .step-btn-full:disabled { cursor: not-allowed; }
   .step-btn { font-size: 11px; font-family: monospace; padding: 5px 12px; border: 0.5px solid var(--accent); border-radius: 6px; background: transparent; color: var(--accent); cursor: pointer; transition: all 0.15s; }
   .step-btn:hover { background: var(--accent-dim); }
   .step-btn:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -257,6 +261,10 @@
     <button class="run-btn" id="run-btn" onclick="runSolver()">
       <span id="btn-icon">▶</span>
       <span id="btn-text">Run Solver</span>
+    </button>
+
+    <button class="step-btn-full" id="step-btn" onclick="downloadStepByStep()" disabled>
+      📄 Download Step-by-Step Guide (.md)
     </button>
 
     <div class="history-section" id="history-section" style="display:none">
